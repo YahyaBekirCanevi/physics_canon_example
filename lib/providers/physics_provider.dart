@@ -41,7 +41,7 @@ class PhysicsProvider with ChangeNotifier {
       'models/d6.obj',
       'models/d6.mtl',
       position: [0, 100, 0],
-      scale: [4, 4, 4],
+      scale: [12,12,12],
       mass: 1,
     );
 

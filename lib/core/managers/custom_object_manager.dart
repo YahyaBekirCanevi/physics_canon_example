@@ -56,7 +56,10 @@ class CustomObjectManager {
 
   cannon.Body? _createPhysicsBody(three.Object3D object, double mass) {
     final boundingBox = three.BoundingBox().setFromObject(object);
-    final size = boundingBox.min;
+    final min = boundingBox.min - object.position;
+    final max = boundingBox.max - object.position;
+    print("${min}, ${max}");
+    final size = max - min;
 
     final shape = cannon.Box(vmath.Vector3(size.x / 2, size.y / 2, size.z / 2).toCanonVec3());
       final body = cannon.Body(

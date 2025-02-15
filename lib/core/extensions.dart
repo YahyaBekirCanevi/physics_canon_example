@@ -19,3 +19,12 @@ extension VMathVector3 on vmath.Vector3 {
     return cannon.Vec3(x, y, z);
   }
 }
+
+extension ThreeVector3 on three.Vector3 {
+  three.Vector3 operator + (three.Vector3 v) {
+    return three.Vector3(x + v.x, y + v.y, z + v.z);
+  }
+  three.Vector3 operator - (three.Vector3 v) {
+    return three.Vector3(x - v.x, y - v.y, z - v.z);
+  }
+}
