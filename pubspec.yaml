@@ -1,0 +1,28 @@
+name: physics_canon_example
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.6.0-26.0.dev
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cannon_physics: ^0.0.1
+  three_js: ^0.0.6
+  three_js_geometry: ^0.0.2
+  vector_math: ^2.1.4
+  provider: ^6.1.2
+  flutter_hooks: ^0.20.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
+    - assets/models/
