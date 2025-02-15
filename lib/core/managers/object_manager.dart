@@ -91,7 +91,7 @@ class ObjectManager {
   }
 
   void _addObjects(int type) {
-    int max = 10;
+    int max = 0;
     for (int i = 0; i < max; i++) {
       int objectType =
           (type == 4) ? (math.Random().nextDouble() * 3).floor() + 1 : type;

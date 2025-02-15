@@ -9,7 +9,8 @@ class BasicPhysicsPage extends StatefulWidget {
   State<BasicPhysicsPage> createState() => _BasicPhysicsPageState();
 }
 
-class _BasicPhysicsPageState extends State<BasicPhysicsPage> with WidgetsBindingObserver {
+class _BasicPhysicsPageState extends State<BasicPhysicsPage>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
@@ -26,7 +27,8 @@ class _BasicPhysicsPageState extends State<BasicPhysicsPage> with WidgetsBinding
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final physicsProvider = Provider.of<PhysicsProvider>(context, listen: false);
+    final physicsProvider =
+        Provider.of<PhysicsProvider>(context, listen: false);
 
     // Pause or resume the update loop based on the app's lifecycle state
     if (state == AppLifecycleState.paused) {
@@ -35,11 +37,16 @@ class _BasicPhysicsPageState extends State<BasicPhysicsPage> with WidgetsBinding
       physicsProvider.resume();
     }
   }
+
   @override
   Widget build(BuildContext context) {
     final physicsProvider = Provider.of<PhysicsProvider>(context);
     return Scaffold(
       body: physicsProvider.threeJs.build(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => physicsProvider.createCustomObject(),
+        child: const Text("d6"),
+      ),
     );
   }
 }

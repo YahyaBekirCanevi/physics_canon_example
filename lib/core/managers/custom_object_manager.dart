@@ -12,7 +12,7 @@ class CustomObjectManager {
 
   CustomObjectManager(this.threeJs, this.world);
 
-  Future<void> loadObject(String objPath, String mtlPath,
+  Future<cannon.Body?> loadObject(String objPath, String mtlPath,
       {List<double>? position, List<double>? scale, double mass = 1}) async {
     try {
       final objLoader = three.OBJLoader();
@@ -49,16 +49,17 @@ class CustomObjectManager {
         customBodies.add(body);
         world.addBody(body);
       }
+      return body;
     } catch (e, trace) {
       print('Error loading custom object: $e, $trace');
     }
+    return null;
   }
 
   cannon.Body? _createPhysicsBody(three.Object3D object, double mass) {
     final boundingBox = three.BoundingBox().setFromObject(object);
     final min = boundingBox.min - object.position;
     final max = boundingBox.max - object.position;
-    print("${min}, ${max}");
     final size = max - min;
 
     final shape = cannon.Box(vmath.Vector3(size.x / 2, size.y / 2, size.z / 2).toCanonVec3());
