@@ -43,9 +43,16 @@ class _BasicPhysicsPageState extends State<BasicPhysicsPage>
     final physicsProvider = Provider.of<PhysicsProvider>(context);
     return Scaffold(
       body: physicsProvider.threeJs.build(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => physicsProvider.createCustomObject(),
-        child: const Text("d6"),
+      floatingActionButton: Wrap(
+        direction: Axis.vertical,
+        spacing: 16,
+        children: [
+          ...["d4", "d6", "d8", "d12", "d20"]
+              .map((dice) => FloatingActionButton(
+                    onPressed: () => physicsProvider.createCustomObject(dice),
+                    child: Text(dice),
+                  )),
+        ],
       ),
     );
   }

@@ -63,17 +63,18 @@ class PhysicsProvider with ChangeNotifier {
     }
   }
 
-  Future<void> createCustomObject() async {
+  Future<void> createCustomObject(String dice) async {
+
     final object = await customObjectManager.loadObject(
-      'models/d6.obj',
-      'models/d6.mtl',
-      position: [0, 200, 0],
-      scale: [12,12,12],
-      mass: 1,
+      'models/$dice.obj',
+      'models/$dice.mtl',
+      position: [0, 100, 0],
+      scale: [20,20,20],
+      mass: 2,
     );
-    final x = -400000 + math.Random().nextDouble() * 800000;
-    final y = -400000 + math.Random().nextDouble() * 800000;
-    final z = -400000 + math.Random().nextDouble() * 800000;
+    final x = -10000 + math.Random().nextDouble() * 20000;
+    final y = -10000 + math.Random().nextDouble() * 20000;
+    final z = -10000 + math.Random().nextDouble() * 20000;
     object?.applyTorque(cannon.Vec3(x,y,z));
   }
 

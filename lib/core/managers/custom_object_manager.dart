@@ -24,6 +24,18 @@ class CustomObjectManager {
           throw Exception('Failed to load material file: $mtlPath');
         }
         materials.preload();
+        const texturePath = 'assets/models/dice_map.png';
+        final texture = await three.TextureLoader().fromAsset(texturePath);
+        if (texture == null) {
+          throw Exception('Failed to load texture: $texturePath');
+        }
+
+        for (var material in materials.materials.values) {
+          if (material.map == null) {
+            material.map = texture;
+            material.needsUpdate = true;
+          }
+        }
         objLoader.setMaterials(materials);
       }
       final object = await objLoader.fromAsset(objPath);
@@ -41,69 +53,151 @@ class CustomObjectManager {
         object.position.setValues(position[0], position[1], position[2]);
       }
 
+      final body = _createPhysicsBody(object, mass);
+      if (body == null) {
+        throw Exception('Couldn\'t create physics body');
+      }
       threeJs.scene.add(object);
       customMeshes.add(object);
 
-      final body = _createPhysicsBody(object, mass);
-      if (body != null) {
-        customBodies.add(body);
-        world.addBody(body);
-      }
+      customBodies.add(body);
+      world.addBody(body);
       return body;
-    } catch (e, trace) {
-      print('Error loading custom object: $e, $trace');
+    } catch (e) {
+      print('Error loading custom object: $e');
+      rethrow;
     }
-    return null;
   }
 
   cannon.Body? _createPhysicsBody(three.Object3D object, double mass) {
-    final boundingBox = three.BoundingBox().setFromObject(object);
-    final min = boundingBox.min - object.position;
-    final max = boundingBox.max - object.position;
-    final size = max - min;
+    final shapes = <cannon.ConvexPolyhedron>[];
+    final offsets = <cannon.Vec3>[];
 
-    final shape = cannon.Box(vmath.Vector3(size.x / 2, size.y / 2, size.z / 2).toCanonVec3());
-      final body = cannon.Body(
+    object.traverse((child) {
+      if (child is three.Mesh && child.geometry != null) {
+        child.updateMatrixWorld(true);
+
+        final vertices = _extractVertices(child.geometry!);
+        final faces = _extractFaces(child.geometry!);
+        var normals = <vmath.Vector3>[];
+        if (child.geometry!.attributes['normal'] == null) {
+          normals = _computeNormals(vertices, faces);
+        }
+        final shape = _createConvexPolyhedron(vertices, normals, faces);
+
+        shapes.add(shape);
+        offsets.add(cannon.Vec3(
+          child.position.x,
+          child.position.y,
+          child.position.z,
+        ));
+      }
+    });
+
+    if (shapes.isEmpty) {
+      return null;
+    }
+
+    final body = cannon.Body(
       mass: mass,
       position: vmath.Vector3(
         object.position.x,
         object.position.y,
         object.position.z,
       ).toCanonVec3(),
-      shape: shape,
     );
+
+    /*for (var i = 0; i < shapes.length; i++) {
+      body.addShape(shapes[i], offsets[i]);
+    }*/
+    body.addShape(shapes[0]); // Test with a single shape first
+
 
     return body;
   }
 
-  void removeObject(int index) {
-    /*if (index < 0 || index >= customMeshes.length) return;
+  List<vmath.Vector3> _extractVertices(three.BufferGeometry geometry) {
+    final vertices = <vmath.Vector3>[];
+    final positions = geometry.attributes['position'].array;
 
-    final mesh = customMeshes[index];
-    threeJs.scene.remove(mesh);
+    for (var i = 0; i < positions.length; i += 3) {
+      vertices
+          .add(vmath.Vector3(positions[i], positions[i + 1], positions[i + 2]));
+    }
 
-    mesh.traverse((child) {
-      if (child is three.Mesh) {
-        child.geometry?.dispose();
-        if (child.material is three.Material) {
-          (child.material as three.Material).dispose();
-        } else if (child.material is List<three.Material>) {
-          for (var mat in (child.material as List<three.Material>)) {
-            mat.dispose();
-          }
-        }
+    return vertices;
+  }
+
+  List<List<int>> _extractFaces(three.BufferGeometry geometry) {
+    final faces = <List<int>>[];
+    final indices = geometry.index?.array;
+
+    if (indices != null) {
+      if (indices.length % 3 != 0) {
+        throw Exception('Indices array length must be a multiple of 3');
       }
-    });
 
-    final body = customBodies[index];
-    world.removeBody(body);
+      for (var i = 0; i < indices.length; i += 3) {
+        if (i + 2 >= indices.length) {
+          break;
+        }
 
-    customMeshes.removeAt(index);
-    customBodies.removeAt(index);*/
+        faces.add([
+          indices[i].toInt(),
+          indices[i + 1].toInt(),
+          indices[i + 2].toInt(),
+        ]);
+      }
+    } else {
+      final positions = geometry.attributes['position'].array;
+      if (positions.length % 9 != 0) {
+        throw Exception('Invalid non-indexed geometry: vertex count must be a multiple of 3');
+      }
+      for (var i = 0; i < positions.length ~/ 3; i += 3) {
+        faces.add([i, i + 1, i + 2]);
+      }
+    }
+
+    return faces;
+  }
+  List<vmath.Vector3> _computeNormals(List<vmath.Vector3> vertices, List<List<int>> faces) {
+    final normals = List.generate(vertices.length, (_) => vmath.Vector3.zero());
+
+    for (final face in faces) {
+      final v0 = vertices[face[0]];
+      final v1 = vertices[face[1]];
+      final v2 = vertices[face[2]];
+
+      final edge1 = v1 - v0;
+      final edge2 = v2 - v0;
+      final normal = edge1.cross(edge2)..normalize();
+
+      normals[face[0]] += normal;
+      normals[face[1]] += normal;
+      normals[face[2]] += normal;
+    }
+
+    for (var normal in normals) {
+      normal.normalize();
+    }
+
+    return normals;
+  }
+
+  cannon.ConvexPolyhedron _createConvexPolyhedron(
+      List<vmath.Vector3> vertices,List<vmath.Vector3> normals, List<List<int>> faces) {
+    final cannonVertices = vertices.map((v) => v.toCanonVec3()).toList();
+    final cannonNormals = normals.map((n) => n.toCanonVec3()).toList();
+    final cannonFaces = faces.map((f) => f.map((i) => i).toList()).toList();
+
+    return cannon.ConvexPolyhedron(
+      vertices: cannonVertices,
+      faces: cannonFaces,
+      normals: cannonNormals.isEmpty ? null: cannonNormals,
+    );
   }
 
   void updatePhysics() {
-    //print(customMeshes);
     for (int i = 0; i < customMeshes.length; i++) {
       final mesh = customMeshes[i];
       final body = customBodies[i];
